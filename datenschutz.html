@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datenschutzerklärung – SwissGuard</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 720px;
+         margin: 2rem auto; padding: 0 1rem; line-height: 1.55; color: #1c1b1b; background: #fff; }
+  h1 { color: #DA291C; }
+  h2 { font-size: 1.1rem; margin-top: 1.6rem; }
+  .meta { color: #666; font-size: .9rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+  td, th { border: 1px solid #ddd; padding: .4rem .6rem; text-align: left; vertical-align: top; }
+  th { background: #f6f6f6; }
+</style>
+</head>
+<body>
+<h1>Datenschutzerklärung SwissGuard</h1>
+<p class="meta">Stand: 9. September 2026</p>
+
+<p><strong>Verantwortlich für die App:</strong> G. Zoa (Entwickler), g.zoa@optiprint.ch<br>
+<strong>Verantwortlich für die Datenbearbeitung im Betrieb:</strong> der Arbeitgeber bzw. die Organisation,
+die SwissGuard einsetzt und die Konten ihrer Mitarbeitenden verwaltet («Betreiber»).</p>
+
+<h2>1. Was SwissGuard ist</h2>
+<p>SwissGuard ist eine Personen-Notsignal-App (Totmann-App) für Alleinarbeitende. Sie überwacht während der
+Arbeit, ob sich die Person in regelmässigen Abständen zurückmeldet, ob sie sich bewegt und ob ein Sturz erkannt
+wird. Bleibt eine Rückmeldung aus oder wird ein SOS ausgelöst, alarmiert die App die hinterlegten
+Notfallkontakte. Die App wird nicht von Privatpersonen frei genutzt, sondern vom Betreiber für seine
+Mitarbeitenden eingerichtet. Konten und Einstellungen vergibt ausschliesslich der Betreiber über ein
+Verwaltungs-Dashboard.</p>
+
+<h2>2. Welche Daten bearbeitet werden</h2>
+<table>
+<tr><th>Daten</th><th>Zweck</th><th>Wo gespeichert</th></tr>
+<tr><td>E-Mail-Adresse und Passwort des Firmenkontos</td><td>Anmeldung in der App</td><td>Firebase Authentication (Google)</td></tr>
+<tr><td>Name der Person</td><td>Wird in der Alarm-SMS genannt, damit die Kontakte wissen, wer Hilfe braucht</td><td>Firebase Firestore (Google), vom Betreiber eingetragen</td></tr>
+<tr><td>Notfallkontakte (Name, Telefonnummer) und Überwachungs-Einstellungen</td><td>Alarmierung; Rückmelde-Intervall, Voralarm, Ruhe- und Sturzalarm</td><td>Firestore, vom Betreiber verwaltet</td></tr>
+<tr><td>Standort (GPS) im Alarmfall</td><td>Wird nur bei einem Alarm oder SOS per SMS an die Notfallkontakte übermittelt, damit sie die Person finden</td><td>Wird an die Notfallkontakte gesendet und im Ereignisprotokoll vermerkt</td></tr>
+<tr><td>Ereignisprotokoll: Start und Ende der Überwachung, Rückmeldungen, Voralarme, Alarme, Akkuwarnungen, je mit Zeitstempel</td><td>Nachvollziehbarkeit von Alarmen für den Betreiber (Arbeitssicherheit)</td><td>Firestore, für den Betreiber im Dashboard einsehbar</td></tr>
+<tr><td>Aktueller Überwachungsstatus und Zeitpunkt der nächsten fälligen Rückmeldung</td><td>Anzeige im Dashboard; optionaler Server-Wachhund, der alarmiert, wenn das Gerät verstummt (Akku leer, kein Netz)</td><td>Firestore</td></tr>
+<tr><td>Bewegungs- und Beschleunigungssensor</td><td>Erkennung von Bewegungslosigkeit und Stürzen</td><td>Nur auf dem Gerät, wird nicht gespeichert oder übertragen</td></tr>
+</table>
+
+<h2>3. Standort</h2>
+<p>Die App fragt den genauen Standort ab, während die Überwachung aktiv ist (Vordergrunddienst mit sichtbarer
+Benachrichtigung). Der Standort wird nicht laufend übertragen oder aufgezeichnet. Er verlässt das Gerät nur im
+Alarmfall als Teil der Alarm-SMS an die vom Betreiber hinterlegten Notfallkontakte sowie als Positionsangabe im
+Alarmereignis des Protokolls. Ohne aktive Überwachung greift die App nicht auf den Standort zu.</p>
+
+<h2>4. SMS und Anrufe</h2>
+<p>Im Alarmfall versendet die App vom Gerät aus SMS an die Notfallkontakte (Name der Person, Alarmgrund, Standort
+als Kartenlink). Ist die Anruf-Eskalation vom Betreiber aktiviert, ruft die App zusätzlich den ersten Kontakt an.
+Die SMS werden über den Mobilfunkvertrag des Geräts versendet. Hat der Betreiber den serverseitigen Alarmweg
+eingerichtet, kann die SMS alternativ über den Dienst Twilio (Twilio Inc., USA) verschickt werden, wenn das Gerät
+selbst nicht senden kann. Die App liest keine SMS, Anruflisten oder Kontakte des Geräts.</p>
+
+<h2>5. Dienste von Google (Firebase)</h2>
+<p>Anmeldung, Einstellungen und Ereignisprotokoll laufen über Firebase Authentication und Cloud Firestore
+(Google LLC, USA; Google Ireland Ltd. für den EWR/die Schweiz). Dabei werden technisch auch IP-Adresse und
+Gerätekennungen an Google übertragen. Google ist Auftragsbearbeiter des Betreibers; es gelten die
+Datenschutzbestimmungen von Google Cloud. Die App enthält keine Werbung, kein Tracking und keine Analyse-Dienste.</p>
+
+<h2>6. Berechtigungen</h2>
+<p><strong>Standort:</strong> Positionsübermittlung im Alarmfall (Punkt 3). <strong>SMS senden</strong> und
+<strong>Anrufen:</strong> Alarmierung der Notfallkontakte (Punkt 4). <strong>Benachrichtigungen,
+Vordergrunddienst, Gerät wach halten, Vibration:</strong> damit die Überwachung auch bei ausgeschaltetem
+Bildschirm zuverlässig läuft und Voralarme wahrgenommen werden. <strong>Internet:</strong> Anmeldung und
+Synchronisation mit dem Dashboard des Betreibers.</p>
+
+<h2>7. Aufbewahrung und Löschung</h2>
+<p>Konten, Einstellungen und Ereignisprotokoll werden vom Betreiber verwaltet und von ihm gelöscht, wenn eine
+Person ausscheidet oder die App nicht mehr eingesetzt wird. Mitarbeitende wenden sich für Auskunft, Berichtigung
+oder Löschung an ihren Betreiber (Administrator). Lokale Einstellungen auf dem Gerät werden mit dem Abmelden
+oder Deinstallieren der App entfernt. Die Android-Sicherung ist für diese App zugelassen; enthalten sind nur
+lokale Einstellungen, keine Protokolle.</p>
+
+<h2>8. Rechtsgrundlage</h2>
+<p>Die Bearbeitung erfolgt zur Erfüllung der Arbeitgeberpflichten zum Schutz Alleinarbeitender (Art. 8
+Verordnung über die Unfallverhütung VUV, EKAS-Richtlinien) und im überwiegenden Interesse am Schutz von Leben und
+Gesundheit. Massgebend sind das schweizerische Datenschutzgesetz (DSG) und, soweit anwendbar, die DSGVO.</p>
+
+<h2>9. Kinder</h2>
+<p>Die App richtet sich an Berufstätige und nicht an Personen unter 16 Jahren.</p>
+
+<h2>10. Kontakt</h2>
+<p>Fragen zur App und zu dieser Erklärung: g.zoa@optiprint.ch. Fragen zu den im Betrieb bearbeiteten Daten:
+Administrator bzw. Datenschutzstelle des Betreibers.</p>
+</body>
+</html>
