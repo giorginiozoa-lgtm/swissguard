@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwissGuard Verwaltung</title>
+<style>
+  :root { --red: #DA291C; --border: #ddd; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #f5f5f5; color: #222; }
+  header { background: var(--red); color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1.2rem; margin: 0; flex: 1; }
+  header button { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.5); }
+  .cross { width: 28px; height: 28px; background: #fff; border-radius: 4px; position: relative; }
+  .cross::before, .cross::after { content: ""; position: absolute; background: var(--red); }
+  .cross::before { left: 19%; top: 40%; width: 62%; height: 20%; }
+  .cross::after { top: 19%; left: 40%; height: 62%; width: 20%; }
+  main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  h2 { margin-top: 0; font-size: 1.05rem; }
+  h3 { font-size: .95rem; margin: 22px 0 6px; border-top: 1px solid var(--border); padding-top: 16px; }
+  label { display: block; font-size: .85rem; margin: 10px 0 4px; font-weight: 600; }
+  input[type=text], input[type=email], input[type=password], input[type=number], textarea {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: .95rem; font-family: inherit;
+  }
+  textarea { resize: vertical; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 180px; }
+  button { background: var(--red); color: #fff; border: none; border-radius: 6px; padding: 10px 16px;
+           font-size: .95rem; cursor: pointer; }
+  button.secondary { background: #fff; color: #333; border: 1px solid var(--border); }
+  button.gefahr { background: #fff; color: var(--red); border: 1px solid var(--red); }
+  button:disabled { opacity: .5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  tr.selected { background: #fdecea; }
+  tr.klickbar { cursor: pointer; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .75rem; }
+  .badge.ok { background: #e6f4ea; color: #1e7e34; }
+  .badge.aus { background: #fdecea; color: var(--red); }
+  .check { display: inline-flex; align-items: center; gap: 6px; margin: 6px 14px 6px 0; font-size: .9rem; }
+  .fehler { color: var(--red); margin-top: 10px; min-height: 1.2em; }
+  .meldung { color: #1e7e34; margin-top: 10px; min-height: 1.2em; }
+  .hinweis { color: #666; font-size: .8rem; }
+  #login-card { max-width: 380px; margin: 60px auto; }
+  .hidden { display: none !important; }
+
+  /* --- Reiter --- */
+  .tabs { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 2px solid var(--border); }
+  .tabs button { background: none; border: none; border-radius: 0; color: #555;
+    padding: 10px 18px; font-size: .95rem; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+  .tabs button.aktiv { color: var(--red); border-bottom-color: var(--red); font-weight: 600; }
+
+  /* --- Auswertung: Kennzahlen & Diagramme --- */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .kpi { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .kpi-label { font-size: .8rem; color: #666; display: flex; align-items: center; gap: 7px; }
+  .kpi-label .punkt { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .kpi-wert { font-size: 1.9rem; font-weight: 600; margin-top: 4px; }
+  .kpi-sub { font-size: .75rem; color: #888; margin-top: 2px; }
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .chart-grid .voll { grid-column: 1 / -1; }
+  @media (max-width: 800px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-card .untertitel { font-size: .8rem; color: #666; margin: 2px 0 12px; }
+  .legende { display: flex; gap: 16px; font-size: .8rem; color: #444; margin-bottom: 8px; }
+  .legende .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+    margin-right: 5px; vertical-align: -1px; }
+  .chart-svg { width: 100%; height: auto; display: block; }
+  .chart-svg line { stroke-width: 1; }
+  .chart-svg text.vt { font-size: 10.5px; fill: #898781; }
+  .chart-svg text.vt-name { fill: #52514e; }
+  .chart-svg text.vt-stark { fill: #222; font-weight: 600; font-size: 11px; }
+  .chart-svg .sg:hover path { opacity: .82; }
+  .chart-svg rect.zeilen-hover:hover { fill: rgba(0,0,0,.04); }
+  .chart-leer { color: #888; font-size: .85rem; padding: 34px 0; text-align: center; }
+  .laedt { opacity: .45; pointer-events: none; }
+  .preset-btns { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .viz-tooltip { position: fixed; z-index: 50; background: #fff; border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.12); padding: 8px 11px;
+    font-size: .8rem; pointer-events: none; display: none; min-width: 130px; }
+  .viz-tooltip .tt-titel { color: #666; margin-bottom: 4px; }
+  .viz-tooltip .tt-zeile { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .viz-tooltip .tt-strich { width: 10px; height: 3px; border-radius: 2px; flex: none; }
+  .viz-tooltip .tt-wert { font-weight: 600; margin-left: auto; padding-left: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="cross"></div>
+  <h1>SwissGuard — zentrale Verwaltung</h1>
+  <span id="admin-email" class="hidden"></span>
+  <button id="logout-btn" class="hidden">Abmelden</button>
+</header>
+
+<main>
+  <!-- Anmeldung -->
+  <div class="card" id="login-card">
+    <h2>Administrator-Anmeldung</h2>
+    <label>E-Mail</label>
+    <input type="email" id="login-email" autocomplete="username">
+    <label>Passwort</label>
+    <input type="password" id="login-pass" autocomplete="current-password">
+    <div class="fehler" id="login-fehler"></div>
+    <button id="login-btn" style="width:100%">Anmelden</button>
+    <p class="hinweis" style="text-align:center;margin-top:12px">
+      <a href="#" id="reset-link">Passwort vergessen?</a>
+    </p>
+    <div class="hinweis" id="reset-meldung"></div>
+  </div>
+
+  <div id="app" class="hidden">
+    <nav class="tabs">
+      <button class="aktiv" id="tab-btn-verwaltung">Verwaltung</button>
+      <button id="tab-btn-auswertung">Auswertung</button>
+    </nav>
+
+    <div id="tab-verwaltung">
+    <!-- Benutzerliste -->
+    <div class="card">
+      <h2>Benutzer</h2>
+      <table>
+        <thead><tr>
+          <th>Name</th><th>E-Mail</th><th>Zugang</th><th>Überwachung</th>
+          <th>Akku</th><th>Intervall</th><th>Zuletzt gesehen</th>
+        </tr></thead>
+        <tbody id="user-liste"></tbody>
+      </table>
+      <p class="hinweis">Zeile anklicken, um den Benutzer zu bearbeiten.
+        Gespeicherte Änderungen werden sofort auf das Gerät übertragen.</p>
+    </div>
+
+    <!-- Editor -->
+    <div class="card hidden" id="editor">
+      <h2>Einstellungen für <span id="editor-titel"></span></h2>
+      <div class="row">
+        <div>
+          <label>Name (erscheint in der Alarm-SMS)</label>
+          <input type="text" id="f-name">
+        </div>
+        <div>
+          <label>Zugang</label>
+          <span class="check"><input type="checkbox" id="f-active"> aktiv</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Rückmelde-Intervall (Minuten)</label>
+          <input type="number" id="f-intervall" min="1" max="480">
+        </div>
+        <div>
+          <label>Voralarm-Dauer (Sekunden)</label>
+          <input type="number" id="f-voralarm" min="15" max="300">
+        </div>
+        <div>
+          <label>Ruhealarm nach (Minuten ohne Bewegung)</label>
+          <input type="number" id="f-ruhe-timeout" min="2" max="60">
+        </div>
+      </div>
+
+      <label>Aktive Funktionen</label>
+      <span class="check"><input type="checkbox" id="f-motion"> Ruhealarm</span>
+      <span class="check"><input type="checkbox" id="f-fall"> Sturzerkennung</span>
+      <span class="check"><input type="checkbox" id="f-call"> Anruf-Eskalation</span>
+
+      <label>Notfallkontakte — eine Nummer pro Zeile</label>
+      <textarea id="f-kontakte" rows="4" placeholder="+41 79 123 45 67&#10;+41 44 123 45 67"></textarea>
+
+      <div class="fehler" id="editor-fehler"></div>
+      <div class="meldung" id="editor-meldung"></div>
+      <button id="speichern-btn">Speichern — sofort übernehmen</button>
+      <button class="secondary" id="schliessen-btn">Schliessen</button>
+
+      <h3>Fernsteuerung</h3>
+      <p>Gerätestatus: <span id="fs-status">—</span></p>
+      <button id="fs-start-btn">Überwachung starten</button>
+      <button class="gefahr" id="fs-stop-btn">Überwachung beenden</button>
+      <p class="hinweis" id="fs-quittung"></p>
+      <p class="hinweis">Befehle erreichen das Gerät nur, solange die App läuft, und
+        verfallen nach 10 Minuten. Neuere Android-Versionen verlangen beim Start aus
+        dem Hintergrund eine Bestätigung — der Benutzer muss dann nur eine
+        Benachrichtigung antippen.</p>
+
+      <h3>Ereignisprotokoll &amp; Tagesauswertung</h3>
+      <p class="hinweis">Die App protokolliert jedes Ereignis (Start, Rückmeldung,
+        Voralarm, Alarm, Akkuwarnung, Stopp) mit Zeitpunkt in der Datenbank.</p>
+      <div class="row">
+        <div><label>Von</label><input type="date" id="ev-von"></div>
+        <div><label>Bis</label><input type="date" id="ev-bis"></div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="secondary" id="ev-laden-btn">Aktualisieren</button>
+        </div>
+      </div>
+      <table style="margin-top:12px">
+        <thead><tr>
+          <th>Tag</th><th>Starts</th><th>Rückmeldungen</th><th>Voralarme</th>
+          <th>Alarme</th><th>Akkuwarnungen</th><th>Stopps</th>
+        </tr></thead>
+        <tbody id="ev-tage"></tbody>
+      </table>
+      <p class="hinweis" id="ev-info"></p>
+      <button id="ev-csv-tage-btn">Tagesauswertung als CSV</button>
+      <button class="secondary" id="ev-csv-detail-btn">Alle Ereignisse als CSV</button>
+
+      <h3>Konto verwalten</h3>
+      <p class="hinweis">
+        Passwort-Reset schickt dem Benutzer eine E-Mail zum Neusetzen.
+        Eine E-Mail-Adresse lässt sich aus Sicherheitsgründen nicht direkt umschreiben —
+        „E-Mail ändern" legt ein neues Konto mit denselben Einstellungen an und sperrt das alte.
+      </p>
+      <button class="secondary" id="reset-btn">Passwort-Reset-E-Mail senden</button>
+      <button class="secondary" id="mailwechsel-btn">E-Mail ändern…</button>
+      <button class="gefahr" id="loeschen-btn">Benutzer löschen</button>
+
+      <div id="mailwechsel-bereich" class="hidden">
+        <div class="row">
+          <div><label>Neue E-Mail</label><input type="email" id="w-email"></div>
+          <div><label>Neues Start-Passwort (min. 6 Zeichen)</label><input type="text" id="w-pass"></div>
+        </div>
+        <button id="mailwechsel-ok-btn" style="margin-top:10px">Konto umziehen</button>
+      </div>
+    </div>
+
+    <!-- Neuer Benutzer -->
+    <div class="card">
+      <h2>Neuen Benutzer anlegen</h2>
+      <div class="row">
+        <div><label>Name</label><input type="text" id="n-name"></div>
+        <div><label>E-Mail</label><input type="email" id="n-email"></div>
+        <div><label>Start-Passwort (min. 6 Zeichen)</label><input type="text" id="n-pass"></div>
+      </div>
+      <div class="fehler" id="neu-fehler"></div>
+      <button id="anlegen-btn">Benutzer anlegen</button>
+      <p class="hinweis">Der Benutzer meldet sich anschliessend in der App mit E-Mail und Passwort an.</p>
+    </div>
+    </div><!-- /tab-verwaltung -->
+
+    <!-- ============================== Auswertung ============================== -->
+    <div id="tab-auswertung" class="hidden">
+
+      <!-- Zeitraum-Filter: gilt für alles darunter -->
+      <div class="card">
+        <div class="row" style="align-items:flex-end">
+          <div><label>Von</label><input type="date" id="ue-von"></div>
+          <div><label>Bis</label><input type="date" id="ue-bis"></div>
+          <div class="preset-btns">
+            <button class="secondary" data-tage="7">7 Tage</button>
+            <button class="secondary" data-tage="30">30 Tage</button>
+            <button class="secondary" data-tage="90">90 Tage</button>
+            <button id="ue-laden-btn">Aktualisieren</button>
+          </div>
+        </div>
+        <p class="hinweis" id="ue-info" style="margin-bottom:0"></p>
+      </div>
+
+      <div id="auswertung-inhalt" class="hidden">
+        <div class="kpis" id="kpi-zeile"></div>
+
+        <div class="chart-grid">
+          <div class="card chart-card voll">
+            <h2>Rückmeldungen pro Tag</h2>
+            <p class="untertitel">«Ich bin OK»-Bestätigungen aller Benutzer im Zeitverlauf</p>
+            <div id="chart-checkins"></div>
+          </div>
+
+          <div class="card chart-card">
+            <h2>Voralarme &amp; Alarme pro Tag</h2>
+            <p class="untertitel">Ausgelöste Ereignisse im Zeitverlauf</p>
+            <div class="legende">
+              <span><span class="swatch" style="background:#eda100"></span>Voralarme</span>
+              <span><span class="swatch" style="background:#e34948"></span>Alarme</span>
+            </div>
+            <div id="chart-alarme"></div>
+          </div>
+
+          <div class="card chart-card">
+            <h2>Auslöser</h2>
+            <p class="untertitel">Warum Voralarme und Alarme ausgelöst wurden</p>
+            <div class="legende">
+              <span><span class="swatch" style="background:#eda100"></span>Voralarme</span>
+              <span><span class="swatch" style="background:#e34948"></span>Alarme</span>
+            </div>
+            <div id="chart-gruende"></div>
+          </div>
+
+          <div class="card chart-card voll">
+            <h2>Voralarme &amp; Alarme pro Benutzer</h2>
+            <p class="untertitel">Nur Benutzer mit Ereignissen, sortiert nach Anzahl —
+              die vollständigen Zahlen stehen in der Tabelle unten</p>
+            <div class="legende">
+              <span><span class="swatch" style="background:#eda100"></span>Voralarme</span>
+              <span><span class="swatch" style="background:#e34948"></span>Alarme</span>
+            </div>
+            <div id="chart-benutzer"></div>
+          </div>
+        </div>
+
+        <!-- Tabellenansicht: barrierefreies Gegenstück zu den Diagrammen -->
+        <div class="card">
+          <h2>Zusammenfassung pro Benutzer</h2>
+          <table style="margin-top:12px">
+            <thead><tr>
+              <th>Benutzer</th><th>Starts</th><th>Rückmeldungen</th><th>Voralarme</th>
+              <th>Alarme</th><th>Akkuwarnungen</th><th>Stopps</th>
+            </tr></thead>
+            <tbody id="ue-tabelle"></tbody>
+          </table>
+          <h3>Export</h3>
+          <button class="secondary" id="ue-csv-benutzer-btn">Benutzerliste als CSV</button>
+          <button id="ue-csv-tage-btn" disabled>Tagesauswertung (alle) als CSV</button>
+          <button id="ue-csv-detail-btn" disabled>Alle Ereignisse (alle) als CSV</button>
+          <p class="hinweis">Die Benutzerliste enthält den aktuellen Stand aller Konten
+            (Zugang, Einstellungen, Kontakte). Die beiden Ereignis-Exporte beziehen sich
+            auf den oben gewählten Zeitraum.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+  createUserWithEmailAndPassword, sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
+  query, where, orderBy, limit, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAijN4YPV4TssVPkwdSWICX_CxrPNh0SLw",
+  authDomain: "swissguard-85fc6.firebaseapp.com",
+  projectId: "swissguard-85fc6",
+  storageBucket: "swissguard-85fc6.firebasestorage.app",
+  messagingSenderId: "809180294704",
+  appId: "1:809180294704:web:b19011e9da103acaad47f5"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = (id) => document.getElementById(id);
+let userStopp = null;
+let ausgewaehlt = null;      // uid des Benutzers im Editor
+let benutzer = {};           // uid -> Dokumentdaten
+
+// Standardwerte für neue Benutzer — der Admin steuert alles zentral.
+const STANDARD_POLICY = {
+  checkInMinutes: 30,
+  preAlarmSeconds: 60,
+  motionEnabled: true,
+  motionTimeoutMinutes: 10,
+  fallEnabled: true,
+  callEnabled: false,
+  contacts: "",
+};
+
+// Kontakte immer als "eine Nummer pro Zeile" normalisieren
+// (verträgt auch alte, komma-getrennte Bestände).
+const kontakteAlsZeilen = (s) =>
+  String(s || "").split(/[\n,;]+/).map((t) => t.trim()).filter(Boolean).join("\n");
+
+const STATUS_TEXT = {
+  IDLE: "inaktiv",
+  MONITORING: "Überwachung aktiv",
+  PRE_ALARM: "⚠️ VORALARM",
+  ALARM: "🚨 ALARM",
+};
+const statusText = (u) => {
+  const s = u.state?.status;
+  if (!s) return "—";
+  const seit = u.state?.statusAt?.toDate
+    ? " (seit " + u.state.statusAt.toDate().toLocaleTimeString("de-CH") + ")" : "";
+  return (STATUS_TEXT[s] || s) + seit;
+};
+
+// ---------------------------------------------------------------- Anmeldung
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { zeigeLogin(); return; }
+  try {
+    const adminDoc = await getDoc(doc(db, "admins", user.uid));
+    if (!adminDoc.exists()) throw new Error("kein Admin");
+  } catch {
+    $("login-fehler").textContent = "Dieses Konto hat keine Administrator-Rechte.";
+    await signOut(auth);
+    return;
+  }
+  $("login-card").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("logout-btn").classList.remove("hidden");
+  $("admin-email").classList.remove("hidden");
+  $("admin-email").textContent = user.email;
+  starteListe();
+});
+
+function zeigeLogin() {
+  if (userStopp) { userStopp(); userStopp = null; }
+  $("login-card").classList.remove("hidden");
+  $("app").classList.add("hidden");
+  $("logout-btn").classList.add("hidden");
+  $("admin-email").classList.add("hidden");
+}
+
+$("login-btn").onclick = async () => {
+  $("login-fehler").textContent = "";
+  try {
+    await signInWithEmailAndPassword(auth, $("login-email").value.trim(), $("login-pass").value);
+  } catch (e) {
+    $("login-fehler").textContent = "Anmeldung fehlgeschlagen: " + (e.code || e.message);
+  }
+};
+$("logout-btn").onclick = () => signOut(auth);
+
+// Passwort zuruecksetzen: Firebase schickt einen Link an die eingetragene E-Mail.
+$("reset-link").onclick = async (ev) => {
+  ev.preventDefault();
+  const email = $("login-email").value.trim();
+  $("login-fehler").textContent = "";
+  $("reset-meldung").textContent = "";
+  if (!email) {
+    $("login-fehler").textContent = "Bitte zuerst die E-Mail-Adresse eintragen.";
+    return;
+  }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    $("reset-meldung").textContent =
+      `Falls ${email} ein Konto hat, ist eine E-Mail zum Zurücksetzen unterwegs (auch im Spam nachsehen).`;
+  } catch (e) {
+    $("login-fehler").textContent = "Zurücksetzen fehlgeschlagen: " + (e.code || e.message);
+  }
+};
+
+// ---------------------------------------------------------------- Liste (live)
+
+function starteListe() {
+  if (userStopp) userStopp();
+  if (!$("ue-von").value) {
+    $("ue-von").value = tagKey(new Date(Date.now() - 30 * 24 * 3600 * 1000));
+    $("ue-bis").value = tagKey(new Date());
+  }
+  userStopp = onSnapshot(collection(db, "users"), (snap) => {
+    benutzer = {};
+    const zeilen = [];
+    snap.forEach((d) => {
+      const u = d.data();
+      benutzer[d.id] = u;
+      const aktiv = u.active !== false;
+      const gesehen = u.state?.lastSeenAt?.toDate
+        ? u.state.lastSeenAt.toDate().toLocaleString("de-CH") : "—";
+      const intervall = u.policy?.checkInMinutes ? u.policy.checkInMinutes + " Min." : "—";
+      const status = u.state?.status;
+      const statusBadge = status === "MONITORING"
+        ? `<span class="badge ok">${esc(statusText(u))}</span>`
+        : (status === "PRE_ALARM" || status === "ALARM")
+          ? `<span class="badge aus">${esc(statusText(u))}</span>`
+          : esc(statusText(u));
+      const akkuStand = u.state?.battery;
+      const akkuText = akkuStand != null
+        ? akkuStand + " %" + (u.state?.batteryCharging ? " ⚡" : "") : "—";
+      const akkuZelle = (akkuStand != null && akkuStand <= 20 && !u.state?.batteryCharging)
+        ? `<span class="badge aus">${esc(akkuText)}</span>` : esc(akkuText);
+      zeilen.push(`<tr class="klickbar ${d.id === ausgewaehlt ? "selected" : ""}" data-uid="${d.id}">
+        <td>${esc(u.name || "—")}</td>
+        <td>${esc(u.email || "—")}</td>
+        <td><span class="badge ${aktiv ? "ok" : "aus"}">${aktiv ? "aktiv" : "gesperrt"}</span></td>
+        <td>${statusBadge}</td>
+        <td>${akkuZelle}</td>
+        <td>${intervall}</td>
+        <td>${gesehen}</td>
+      </tr>`);
+    });
+    $("user-liste").innerHTML = zeilen.join("") ||
+      `<tr><td colspan="7">Noch keine Benutzer angelegt.</td></tr>`;
+    document.querySelectorAll("#user-liste tr[data-uid]").forEach((tr) => {
+      tr.onclick = () => oeffneEditor(tr.dataset.uid);
+    });
+    // Editor schliessen, falls der gezeigte Benutzer gelöscht wurde.
+    if (ausgewaehlt && !benutzer[ausgewaehlt]) schliesseEditor();
+    aktualisiereFernsteuerung();
+  });
+}
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// ---------------------------------------------------------------- Editor
+
+function oeffneEditor(uid) {
+  const u = benutzer[uid];
+  if (!u) return;
+  ausgewaehlt = uid;
+  const p = { ...STANDARD_POLICY, ...(u.policy || {}) };
+  // Altbestand: früher gab es eine Options-Liste statt eines festen Intervalls.
+  if (!p.checkInMinutes && Array.isArray(u.policy?.checkInOptions) && u.policy.checkInOptions.length) {
+    p.checkInMinutes = u.policy.checkInOptions[0];
+  }
+  $("editor-titel").textContent = u.name || u.email || uid;
+  $("f-name").value = u.name || "";
+  $("f-active").checked = u.active !== false;
+  $("f-intervall").value = p.checkInMinutes;
+  $("f-voralarm").value = p.preAlarmSeconds;
+  $("f-ruhe-timeout").value = p.motionTimeoutMinutes;
+  $("f-motion").checked = !!p.motionEnabled;
+  $("f-fall").checked = !!p.fallEnabled;
+  $("f-call").checked = !!p.callEnabled;
+  $("f-kontakte").value = kontakteAlsZeilen(p.contacts);
+  $("editor-fehler").textContent = "";
+  $("editor-meldung").textContent = "";
+  $("mailwechsel-bereich").classList.add("hidden");
+  // Ereignisprotokoll: Standardzeitraum = letzte 30 Tage, dann laden.
+  if (!$("ev-von").value) {
+    $("ev-von").value = tagKey(new Date(Date.now() - 30 * 24 * 3600 * 1000));
+    $("ev-bis").value = tagKey(new Date());
+  }
+  ereignisse = [];
+  $("ev-tage").innerHTML = "";
+  ladeEreignisse();
+  aktualisiereFernsteuerung();
+  $("editor").classList.remove("hidden");
+  document.querySelectorAll("#user-liste tr").forEach((tr) =>
+    tr.classList.toggle("selected", tr.dataset.uid === uid));
+  $("editor").scrollIntoView({ behavior: "smooth" });
+}
+
+function schliesseEditor() {
+  ausgewaehlt = null;
+  $("editor").classList.add("hidden");
+  document.querySelectorAll("#user-liste tr").forEach((tr) => tr.classList.remove("selected"));
+}
+$("schliessen-btn").onclick = schliesseEditor;
+
+$("speichern-btn").onclick = async () => {
+  if (!ausgewaehlt) return;
+  $("editor-fehler").textContent = "";
+  const intervall = parseInt($("f-intervall").value, 10);
+  if (!Number.isInteger(intervall) || intervall < 1) {
+    $("editor-fehler").textContent = "Bitte ein gültiges Rückmelde-Intervall angeben.";
+    return;
+  }
+  try {
+    await setDoc(doc(db, "users", ausgewaehlt), {
+      name: $("f-name").value.trim(),
+      active: $("f-active").checked,
+      policy: {
+        checkInMinutes: intervall,
+        preAlarmSeconds: parseInt($("f-voralarm").value, 10) || 60,
+        motionTimeoutMinutes: parseInt($("f-ruhe-timeout").value, 10) || 10,
+        motionEnabled: $("f-motion").checked,
+        fallEnabled: $("f-fall").checked,
+        callEnabled: $("f-call").checked,
+        contacts: kontakteAlsZeilen($("f-kontakte").value),
+      },
+    }, { merge: true });
+    meldung("Gespeichert ✓ — Gerät übernimmt die Änderung sofort.");
+  } catch (e) {
+    $("editor-fehler").textContent = "Speichern fehlgeschlagen: " + (e.code || e.message);
+  }
+};
+
+function meldung(text) {
+  $("editor-meldung").textContent = text;
+  setTimeout(() => { $("editor-meldung").textContent = ""; }, 4000);
+}
+
+// ---------------------------------------------------------------- Ereignisprotokoll
+
+const EVENT_TEXT = {
+  MONITOR_START: "Überwachung gestartet",
+  MONITOR_STOP: "Überwachung beendet",
+  CHECK_IN: "Rückmeldung OK",
+  PRE_ALARM: "Voralarm",
+  ALARM: "Alarm ausgelöst",
+  BATTERY_LOW: "Akkuwarnung",
+};
+const REASON_TEXT = {
+  CHECKIN_MISSED: "Rückmeldung verpasst",
+  NO_MOVEMENT: "Keine Bewegung erkannt",
+  FALL: "Sturz erkannt",
+  SOS: "SOS manuell ausgelöst",
+};
+
+let ereignisse = [];   // Ereignisse des im Editor geöffneten Benutzers
+
+// Serverzeit bevorzugen; solange ein Ereignis noch nicht synchronisiert
+// wurde, die Gerätezeit als Rückfallebene nehmen.
+const eventZeit = (e) => (e.at?.toDate ? e.at.toDate() : new Date(e.atLocal || 0));
+
+const tagKey = (d) =>
+  d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+  "-" + String(d.getDate()).padStart(2, "0");
+
+async function ladeEreignisse() {
+  if (!ausgewaehlt) return;
+  const von = new Date($("ev-von").value + "T00:00:00").getTime();
+  const bis = new Date($("ev-bis").value + "T23:59:59.999").getTime();
+  if (!Number.isFinite(von) || !Number.isFinite(bis)) return;
+  $("ev-info").textContent = "Lade Ereignisse …";
+  try {
+    const snap = await getDocs(query(
+      collection(db, "users", ausgewaehlt, "events"),
+      where("atLocal", ">=", von),
+      where("atLocal", "<=", bis),
+      orderBy("atLocal", "desc"),
+      limit(5000),
+    ));
+    ereignisse = [];
+    snap.forEach((d) => ereignisse.push(d.data()));
+    zeigeTagesauswertung();
+  } catch (e) {
+    $("ev-info").textContent = "Laden fehlgeschlagen: " + (e.code || e.message);
+  }
+}
+$("ev-laden-btn").onclick = ladeEreignisse;
+
+function tagesAuswertung() {
+  const tage = new Map();   // "2026-08-15" -> Zähler pro Ereignistyp
+  for (const e of ereignisse) {
+    const key = tagKey(eventZeit(e));
+    if (!tage.has(key)) tage.set(key, {
+      MONITOR_START: 0, CHECK_IN: 0, PRE_ALARM: 0,
+      ALARM: 0, BATTERY_LOW: 0, MONITOR_STOP: 0,
+    });
+    const z = tage.get(key);
+    if (z[e.type] != null) z[e.type]++;
+  }
+  return [...tage.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+}
+
+function zeigeTagesauswertung() {
+  const tage = tagesAuswertung();
+  $("ev-tage").innerHTML = tage.map(([tag, z]) => `<tr>
+    <td>${tag}</td><td>${z.MONITOR_START}</td><td>${z.CHECK_IN}</td>
+    <td>${z.PRE_ALARM}</td><td>${z.ALARM}</td><td>${z.BATTERY_LOW}</td><td>${z.MONITOR_STOP}</td>
+  </tr>`).join("") || `<tr><td colspan="7">Keine Ereignisse im gewählten Zeitraum.</td></tr>`;
+  $("ev-info").textContent = ereignisse.length + " Ereignisse geladen.";
+}
+
+// CSV mit Semikolon-Trennung und BOM — öffnet sauber in Excel (Schweiz).
+function csvDownload(dateiname, zeilen) {
+  const inhalt = "\uFEFF" + zeilen.map((z) =>
+    z.map((f) => `"${String(f ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+  const blob = new Blob([inhalt], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = dateiname;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+const csvName = (art) => {
+  const u = benutzer[ausgewaehlt] || {};
+  const wer = (u.name || u.email || "benutzer").replace(/\W+/g, "_");
+  return `swissguard-${art}-${wer}-${$("ev-von").value}_bis_${$("ev-bis").value}.csv`;
+};
+
+$("ev-csv-tage-btn").onclick = () => {
+  if (!ausgewaehlt) return;
+  const zeilen = [["Tag", "Überwachung gestartet", "Rückmeldungen", "Voralarme",
+    "Alarme", "Akkuwarnungen", "Überwachung beendet"]];
+  for (const [tag, z] of tagesAuswertung()) {
+    zeilen.push([tag, z.MONITOR_START, z.CHECK_IN, z.PRE_ALARM,
+      z.ALARM, z.BATTERY_LOW, z.MONITOR_STOP]);
+  }
+  csvDownload(csvName("tagesauswertung"), zeilen);
+};
+
+$("ev-csv-detail-btn").onclick = () => {
+  if (!ausgewaehlt) return;
+  const zeilen = [["Datum", "Zeit", "Ereignis", "Grund", "Akku %", "Position", "SMS gesendet an"]];
+  for (const e of ereignisse) {
+    const d = eventZeit(e);
+    zeilen.push([
+      d.toLocaleDateString("de-CH"),
+      d.toLocaleTimeString("de-CH"),
+      EVENT_TEXT[e.type] || e.type,
+      e.reason ? (REASON_TEXT[e.reason] || e.reason) : "",
+      e.battery ?? "",
+      e.lat != null ? e.lat + ", " + e.lon : "",
+      Array.isArray(e.sentTo) ? e.sentTo.join(", ") : "",
+    ]);
+  }
+  csvDownload(csvName("ereignisse"), zeilen);
+};
+
+// ---------------------------------------------------------------- Übersicht: alle Benutzer
+
+let alleEreignisse = null;   // [{uid, name, email, events}] nach «Auswertung laden»
+
+const leereZaehler = () => ({
+  MONITOR_START: 0, CHECK_IN: 0, PRE_ALARM: 0,
+  ALARM: 0, BATTERY_LOW: 0, MONITOR_STOP: 0,
+});
+
+function zaehle(events) {
+  const z = leereZaehler();
+  for (const e of events) if (z[e.type] != null) z[e.type]++;
+  return z;
+}
+
+async function ladeAlleEreignisse() {
+  const von = new Date($("ue-von").value + "T00:00:00").getTime();
+  const bis = new Date($("ue-bis").value + "T23:59:59.999").getTime();
+  if (!Number.isFinite(von) || !Number.isFinite(bis)) {
+    $("ue-info").textContent = "Bitte einen gültigen Zeitraum wählen.";
+    return;
+  }
+  const uids = Object.keys(benutzer);
+  if (!uids.length) { $("ue-info").textContent = "Noch keine Benutzer angelegt."; return; }
+  $("ue-laden-btn").disabled = true;
+  $("ue-info").textContent = `Lade Ereignisse von ${uids.length} Benutzern …`;
+  // Bisherige Darstellung während des Ladens gedimmt stehen lassen (kein Layout-Sprung).
+  $("auswertung-inhalt").classList.add("laedt");
+  try {
+    alleEreignisse = await Promise.all(uids.map(async (uid) => {
+      const u = benutzer[uid] || {};
+      const snap = await getDocs(query(
+        collection(db, "users", uid, "events"),
+        where("atLocal", ">=", von),
+        where("atLocal", "<=", bis),
+        orderBy("atLocal", "desc"),
+        limit(5000),
+      ));
+      const events = [];
+      snap.forEach((d) => events.push(d.data()));
+      return { uid, name: u.name || u.email || uid, email: u.email || "", events };
+    }));
+    renderAuswertung();
+    $("ue-csv-tage-btn").disabled = false;
+    $("ue-csv-detail-btn").disabled = false;
+  } catch (e) {
+    alleEreignisse = null;
+    $("ue-info").textContent = "Laden fehlgeschlagen: " + (e.code || e.message);
+  } finally {
+    $("ue-laden-btn").disabled = false;
+    $("auswertung-inhalt").classList.remove("laedt");
+  }
+}
+$("ue-laden-btn").onclick = ladeAlleEreignisse;
+
+// Zeitraum geändert → geladene Daten passen nicht mehr: Exporte sperren,
+// Darstellung dimmen, bis neu geladen wurde.
+for (const id of ["ue-von", "ue-bis"]) $(id).onchange = () => {
+  alleEreignisse = null;
+  $("ue-csv-tage-btn").disabled = true;
+  $("ue-csv-detail-btn").disabled = true;
+  $("auswertung-inhalt").classList.add("laedt");
+  $("ue-info").textContent = "Zeitraum geändert — «Aktualisieren» drücken.";
+};
+
+// Schnellwahl: letzte 7/30/90 Tage einstellen und sofort laden.
+document.querySelectorAll(".preset-btns button[data-tage]").forEach((b) => {
+  b.onclick = () => {
+    const t = parseInt(b.dataset.tage, 10);
+    $("ue-von").value = tagKey(new Date(Date.now() - (t - 1) * 24 * 3600 * 1000));
+    $("ue-bis").value = tagKey(new Date());
+    ladeAlleEreignisse();
+  };
+});
+
+// ---------------------------------------------------------------- Reiter
+
+function zeigeTab(name) {
+  $("tab-verwaltung").classList.toggle("hidden", name !== "verwaltung");
+  $("tab-auswertung").classList.toggle("hidden", name !== "auswertung");
+  $("tab-btn-verwaltung").classList.toggle("aktiv", name === "verwaltung");
+  $("tab-btn-auswertung").classList.toggle("aktiv", name === "auswertung");
+  if (name === "auswertung" && !alleEreignisse) ladeAlleEreignisse();
+}
+$("tab-btn-verwaltung").onclick = () => zeigeTab("verwaltung");
+$("tab-btn-auswertung").onclick = () => zeigeTab("auswertung");
+
+function zeigeUebersicht() {
+  const gesamt = leereZaehler();
+  const zeilen = alleEreignisse.map((b) => {
+    const z = zaehle(b.events);
+    for (const k in gesamt) gesamt[k] += z[k];
+    return `<tr>
+      <td>${esc(b.name)}</td><td>${z.MONITOR_START}</td><td>${z.CHECK_IN}</td>
+      <td>${z.PRE_ALARM}</td><td>${z.ALARM}</td><td>${z.BATTERY_LOW}</td><td>${z.MONITOR_STOP}</td>
+    </tr>`;
+  });
+  zeilen.push(`<tr style="font-weight:600;border-top:2px solid var(--border)">
+    <td>Total</td><td>${gesamt.MONITOR_START}</td><td>${gesamt.CHECK_IN}</td>
+    <td>${gesamt.PRE_ALARM}</td><td>${gesamt.ALARM}</td><td>${gesamt.BATTERY_LOW}</td><td>${gesamt.MONITOR_STOP}</td>
+  </tr>`);
+  $("ue-tabelle").innerHTML = zeilen.join("");
+  const anzahl = alleEreignisse.reduce((s, b) => s + b.events.length, 0);
+  $("ue-info").textContent =
+    `${anzahl} Ereignisse von ${alleEreignisse.length} Benutzern geladen.`;
+}
+
+// Benutzerliste (aktueller Kontostand) — funktioniert ohne Ereignis-Laden.
+$("ue-csv-benutzer-btn").onclick = () => {
+  const zeilen = [["Name", "E-Mail", "Zugang", "Überwachung", "Akku %",
+    "Rückmelde-Intervall (Min.)", "Voralarm (Sek.)", "Ruhealarm nach (Min.)",
+    "Ruhealarm", "Sturzerkennung", "Anruf-Eskalation", "Notfallkontakte", "Zuletzt gesehen"]];
+  for (const u of Object.values(benutzer)) {
+    const p = { ...STANDARD_POLICY, ...(u.policy || {}) };
+    zeilen.push([
+      u.name || "", u.email || "",
+      u.active !== false ? "aktiv" : "gesperrt",
+      statusText(u),
+      u.state?.battery ?? "",
+      p.checkInMinutes, p.preAlarmSeconds, p.motionTimeoutMinutes,
+      p.motionEnabled ? "ja" : "nein",
+      p.fallEnabled ? "ja" : "nein",
+      p.callEnabled ? "ja" : "nein",
+      kontakteAlsZeilen(p.contacts).split("\n").join(", "),
+      u.state?.lastSeenAt?.toDate ? u.state.lastSeenAt.toDate().toLocaleString("de-CH") : "",
+    ]);
+  }
+  csvDownload(`swissguard-benutzerliste-${tagKey(new Date())}.csv`, zeilen);
+};
+
+$("ue-csv-tage-btn").onclick = () => {
+  if (!alleEreignisse) return;
+  const zeilen = [["Tag", "Benutzer", "E-Mail", "Überwachung gestartet", "Rückmeldungen",
+    "Voralarme", "Alarme", "Akkuwarnungen", "Überwachung beendet"]];
+  for (const b of alleEreignisse) {
+    const tage = new Map();
+    for (const e of b.events) {
+      const key = tagKey(eventZeit(e));
+      if (!tage.has(key)) tage.set(key, leereZaehler());
+      const z = tage.get(key);
+      if (z[e.type] != null) z[e.type]++;
+    }
+    for (const [tag, z] of [...tage.entries()].sort((a, c) => c[0].localeCompare(a[0]))) {
+      zeilen.push([tag, b.name, b.email, z.MONITOR_START, z.CHECK_IN,
+        z.PRE_ALARM, z.ALARM, z.BATTERY_LOW, z.MONITOR_STOP]);
+    }
+  }
+  csvDownload(`swissguard-tagesauswertung-alle-${$("ue-von").value}_bis_${$("ue-bis").value}.csv`, zeilen);
+};
+
+$("ue-csv-detail-btn").onclick = () => {
+  if (!alleEreignisse) return;
+  const zeilen = [["Benutzer", "E-Mail", "Datum", "Zeit", "Ereignis", "Grund",
+    "Akku %", "Position", "SMS gesendet an"]];
+  for (const b of alleEreignisse) {
+    for (const e of b.events) {
+      const d = eventZeit(e);
+      zeilen.push([
+        b.name, b.email,
+        d.toLocaleDateString("de-CH"),
+        d.toLocaleTimeString("de-CH"),
+        EVENT_TEXT[e.type] || e.type,
+        e.reason ? (REASON_TEXT[e.reason] || e.reason) : "",
+        e.battery ?? "",
+        e.lat != null ? e.lat + ", " + e.lon : "",
+        Array.isArray(e.sentTo) ? e.sentTo.join(", ") : "",
+      ]);
+    }
+  }
+  csvDownload(`swissguard-ereignisse-alle-${$("ue-von").value}_bis_${$("ue-bis").value}.csv`, zeilen);
+};
+
+// ---------------------------------------------------------------- Diagramme
+
+// Serienfarben (validierte Palette): Blau = Rückmeldungen, Gelb = Voralarme,
+// Rot = Alarme. Gelb liegt unter 3:1 Kontrast — deshalb tragen die Diagramme
+// direkte Wertbeschriftungen und die Tabelle unten führt alle Zahlen.
+const VIZ = {
+  checkin: "#2a78d6",
+  voralarm: "#eda100",
+  alarm: "#e34948",
+  neutral: "#898781",
+  gitter: "#e8e7e2",
+  achse: "#c3c2b7",
+};
+
+const zahlCH = (n) => n.toLocaleString("de-CH");
+const tagAnzeige = (key) => key.slice(8, 10) + "." + key.slice(5, 7) + "." + key.slice(0, 4);
+
+function netterSchritt(x) {
+  if (x <= 1) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(x)));
+  for (const m of [1, 2, 5, 10]) if (m * p >= x) return m * p;
+  return 10 * p;
+}
+
+const zeigeLeer = (ziel) => {
+  ziel.innerHTML = `<div class="chart-leer">Keine Ereignisse im gewählten Zeitraum.</div>`;
+};
+
+// Ein gemeinsamer Tooltip für alle Diagramme (Inhalt via textContent — nie HTML).
+let tooltipEl = null;
+function zeigeTooltip(ev, titel, zeilen) {
+  if (!tooltipEl) {
+    tooltipEl = document.createElement("div");
+    tooltipEl.className = "viz-tooltip";
+    document.body.appendChild(tooltipEl);
+  }
+  const t = tooltipEl;
+  t.textContent = "";
+  const kopf = document.createElement("div");
+  kopf.className = "tt-titel";
+  kopf.textContent = titel;
+  t.appendChild(kopf);
+  for (const z of zeilen) {
+    const r = document.createElement("div");
+    r.className = "tt-zeile";
+    const strich = document.createElement("span");
+    strich.className = "tt-strich";
+    strich.style.background = z.farbe;
+    const name = document.createElement("span");
+    name.textContent = z.name;
+    const wert = document.createElement("span");
+    wert.className = "tt-wert";
+    wert.textContent = zahlCH(z.wert);
+    r.append(strich, name, wert);
+    t.appendChild(r);
+  }
+  t.style.display = "block";
+  const b = t.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + b.width > innerWidth - 8) x = ev.clientX - b.width - 14;
+  if (y + b.height > innerHeight - 8) y = ev.clientY - b.height - 14;
+  t.style.left = x + "px";
+  t.style.top = y + "px";
+}
+const versteckeTooltip = () => { if (tooltipEl) tooltipEl.style.display = "none"; };
+
+// Säule mit 4px gerundetem Datenende, eckig an der Basislinie.
+function saeulePfad(x, yTop, w, h) {
+  const r = Math.min(4, w / 2, h);
+  return `M${x} ${yTop + h} L${x} ${yTop + r} Q${x} ${yTop} ${x + r} ${yTop}` +
+    ` L${x + w - r} ${yTop} Q${x + w} ${yTop} ${x + w} ${yTop + r} L${x + w} ${yTop + h} Z`;
+}
+
+// Horizontaler Balken mit gerundetem rechtem Datenende.
+function balkenPfad(x, y, w, h) {
+  const r = Math.min(4, h / 2, w);
+  return `M${x} ${y} L${x + w - r} ${y} Q${x + w} ${y} ${x + w} ${y + r}` +
+    ` L${x + w} ${y + h - r} Q${x + w} ${y + h} ${x + w - r} ${y + h} L${x} ${y + h} Z`;
+}
+
+// Säulendiagramm über Tage; 1 Serie oder 2 gruppierte Serien.
+function saeulenChart(ziel, tage, serien, W = 720) {
+  const maxWert = Math.max(...serien.flatMap((s) => s.werte));
+  if (!maxWert) { zeigeLeer(ziel); return; }
+  const oben = 18, unten = 26, links = 44, rechts = 10, plotH = 190;
+  const H = oben + plotH + unten;
+  const plotW = W - links - rechts;
+  const schritt = netterSchritt(maxWert / 4), top = schritt * 4;
+  const y = (v) => oben + plotH - (v / top) * plotH;
+  const n = tage.length;
+  const slot = plotW / n;
+  const bw = Math.max(1.5, Math.min(24, (slot * 0.72 - 2 * (serien.length - 1)) / serien.length));
+  const gruppeB = bw * serien.length + 2 * (serien.length - 1);
+
+  let svg = "";
+  for (let i = 0; i <= 4; i++) {
+    const gy = y(schritt * i);
+    svg += `<line x1="${links}" x2="${W - rechts}" y1="${gy}" y2="${gy}" stroke="${i ? VIZ.gitter : VIZ.achse}"/>`;
+    if (i) svg += `<text x="${links - 7}" y="${gy + 3.5}" text-anchor="end" class="vt">${zahlCH(schritt * i)}</text>`;
+  }
+  const jede = Math.max(1, Math.ceil(n / 8));
+  tage.forEach((t, i) => {
+    const gx = links + slot * i + (slot - gruppeB) / 2;
+    let balken = "";
+    serien.forEach((se, si) => {
+      const v = se.werte[i];
+      if (v > 0) balken += `<path d="${saeulePfad(gx + si * (bw + 2), y(v), bw, oben + plotH - y(v))}" fill="${se.farbe}"/>`;
+    });
+    svg += `<g class="sg">${balken}<rect x="${links + slot * i}" y="${oben}" width="${slot}" height="${plotH}" fill="transparent" data-i="${i}"/></g>`;
+    if (i % jede === 0) {
+      svg += `<text x="${links + slot * i + slot / 2}" y="${H - 8}" text-anchor="middle" class="vt">${tagAnzeige(t).slice(0, 6)}</text>`;
+    }
+  });
+  // Eine selektive Direktbeschriftung: die höchste Säule.
+  let mI = 0, mSi = 0, mV = -1;
+  serien.forEach((se, si) => se.werte.forEach((v, i) => { if (v > mV) { mV = v; mI = i; mSi = si; } }));
+  const lx = Math.min(W - rechts - 10, Math.max(links + 10,
+    links + slot * mI + (slot - gruppeB) / 2 + mSi * (bw + 2) + bw / 2));
+  svg += `<text x="${lx}" y="${y(mV) - 5}" text-anchor="middle" class="vt vt-stark">${zahlCH(mV)}</text>`;
+
+  ziel.innerHTML = `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img">${svg}</svg>`;
+  ziel.querySelectorAll("rect[data-i]").forEach((r) => {
+    const i = +r.dataset.i;
+    r.addEventListener("pointermove", (ev) => zeigeTooltip(ev, tagAnzeige(tage[i]),
+      serien.map((se) => ({ farbe: se.farbe, name: se.name, wert: se.werte[i] }))));
+    r.addEventListener("pointerleave", versteckeTooltip);
+  });
+}
+
+// Horizontales, gestapeltes Balkendiagramm (Zeile = Kategorie/Benutzer).
+function balkenChart(ziel, items, serien, W = 520) {
+  if (!items.length || !items.some((it) => it.werte.some((v) => v > 0))) { zeigeLeer(ziel); return; }
+  const zeilenH = 30, bh = 16, links = 150, rechts = 48, oben = 6, unten = 22;
+  const H = oben + items.length * zeilenH + unten;
+  const maxWert = Math.max(...items.map((it) => it.werte.reduce((a, b) => a + b, 0)));
+  const schritt = netterSchritt(maxWert / 4), top = schritt * 4;
+  const plotW = W - links - rechts;
+  const x = (v) => links + (v / top) * plotW;
+
+  let svg = "";
+  for (let i = 0; i <= 4; i++) {
+    const gx = x(schritt * i);
+    svg += `<line x1="${gx}" x2="${gx}" y1="${oben}" y2="${H - unten}" stroke="${i ? VIZ.gitter : VIZ.achse}"/>`;
+    if (i) svg += `<text x="${gx}" y="${H - 7}" text-anchor="middle" class="vt">${zahlCH(schritt * i)}</text>`;
+  }
+  items.forEach((it, i) => {
+    const yM = oben + i * zeilenH + zeilenH / 2;
+    const name = it.label.length > 22 ? it.label.slice(0, 21) + "…" : it.label;
+    svg += `<text x="${links - 8}" y="${yM + 3.5}" text-anchor="end" class="vt vt-name">${esc(name)}</text>`;
+    let vx = links, letztes = -1;
+    it.werte.forEach((v, si) => { if (v > 0) letztes = si; });
+    it.werte.forEach((v, si) => {
+      if (v <= 0) return;
+      // 2px Flächenabstand zwischen Segmenten statt Kontur.
+      const sx = vx === links ? vx : vx + 2;
+      const sw = Math.max(1.5, (v / top) * plotW - (sx - vx));
+      svg += si === letztes
+        ? `<path d="${balkenPfad(sx, yM - bh / 2, sw, bh)}" fill="${serien[si].farbe}"/>`
+        : `<rect x="${sx}" y="${yM - bh / 2}" width="${sw}" height="${bh}" fill="${serien[si].farbe}"/>`;
+      vx += (v / top) * plotW;
+    });
+    const summe = it.werte.reduce((a, b) => a + b, 0);
+    svg += `<text x="${vx + 6}" y="${yM + 3.5}" class="vt vt-stark">${zahlCH(summe)}</text>`;
+    svg += `<rect class="zeilen-hover" x="0" y="${oben + i * zeilenH}" width="${W}" height="${zeilenH}" fill="transparent" data-i="${i}"/>`;
+  });
+
+  ziel.innerHTML = `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img">${svg}</svg>`;
+  ziel.querySelectorAll("rect[data-i]").forEach((r) => {
+    const i = +r.dataset.i;
+    r.addEventListener("pointermove", (ev) => zeigeTooltip(ev, items[i].label,
+      serien.map((se, si) => ({ farbe: se.farbe, name: se.name, wert: items[i].werte[si] }))));
+    r.addEventListener("pointerleave", versteckeTooltip);
+  });
+}
+
+// ---------------------------------------------------------------- Auswertung rendern
+
+function renderAuswertung() {
+  zeigeUebersicht();   // Tabelle + Info-Zeile
+
+  // Lückenlose Tagesliste über den gewählten Zeitraum (max. 400 Tage).
+  const von = new Date($("ue-von").value + "T00:00:00");
+  const bis = new Date($("ue-bis").value + "T00:00:00");
+  const tagListe = [];
+  for (const d = new Date(von); d <= bis && tagListe.length < 400; d.setDate(d.getDate() + 1)) {
+    tagListe.push(tagKey(d));
+  }
+
+  const proTag = new Map(tagListe.map((t) => [t, leereZaehler()]));
+  const gesamt = leereZaehler();
+  const gruende = new Map();       // reason -> [Voralarme, Alarme]
+  const proBenutzer = [];
+  let mitAktivitaet = 0;
+  for (const b of alleEreignisse) {
+    const z = zaehle(b.events);
+    for (const k in gesamt) gesamt[k] += z[k];
+    if (b.events.length) mitAktivitaet++;
+    if (z.PRE_ALARM + z.ALARM > 0) proBenutzer.push({ label: b.name, werte: [z.PRE_ALARM, z.ALARM] });
+    for (const e of b.events) {
+      const t = proTag.get(tagKey(eventZeit(e)));
+      if (t && t[e.type] != null) t[e.type]++;
+      if ((e.type === "PRE_ALARM" || e.type === "ALARM") && e.reason) {
+        if (!gruende.has(e.reason)) gruende.set(e.reason, [0, 0]);
+        gruende.get(e.reason)[e.type === "PRE_ALARM" ? 0 : 1]++;
+      }
+    }
+  }
+  proBenutzer.sort((a, b) => (b.werte[0] + b.werte[1]) - (a.werte[0] + a.werte[1]));
+
+  // Kennzahlen
+  $("kpi-zeile").innerHTML = [
+    { label: "Rückmeldungen", wert: gesamt.CHECK_IN, farbe: VIZ.checkin, sub: "«Ich bin OK»-Bestätigungen" },
+    { label: "Voralarme", wert: gesamt.PRE_ALARM, farbe: VIZ.voralarm, sub: "Sirene mit Countdown" },
+    { label: "Alarme", wert: gesamt.ALARM, farbe: VIZ.alarm, sub: "SMS an Notfallkontakte" },
+    { label: "Benutzer mit Aktivität", wert: mitAktivitaet, farbe: VIZ.neutral, sub: `von ${zahlCH(alleEreignisse.length)} Konten` },
+  ].map((k) => `<div class="kpi">
+      <div class="kpi-label"><span class="punkt" style="background:${k.farbe}"></span>${esc(k.label)}</div>
+      <div class="kpi-wert">${zahlCH(k.wert)}</div>
+      <div class="kpi-sub">${esc(k.sub)}</div>
+    </div>`).join("");
+
+  // Diagramme
+  const alarmSerien = [
+    { name: "Voralarme", farbe: VIZ.voralarm },
+    { name: "Alarme", farbe: VIZ.alarm },
+  ];
+  saeulenChart($("chart-checkins"), tagListe,
+    [{ name: "Rückmeldungen", farbe: VIZ.checkin, werte: tagListe.map((t) => proTag.get(t).CHECK_IN) }], 1040);
+  saeulenChart($("chart-alarme"), tagListe, [
+    { ...alarmSerien[0], werte: tagListe.map((t) => proTag.get(t).PRE_ALARM) },
+    { ...alarmSerien[1], werte: tagListe.map((t) => proTag.get(t).ALARM) },
+  ], 520);
+  balkenChart($("chart-gruende"), [...gruende.entries()]
+    .map(([r, w]) => ({ label: REASON_TEXT[r] || r, werte: w }))
+    .sort((a, b) => (b.werte[0] + b.werte[1]) - (a.werte[0] + a.werte[1])), alarmSerien, 520);
+
+  let benutzerItems = proBenutzer;
+  if (benutzerItems.length > 20) {
+    const rest = benutzerItems.slice(19);
+    benutzerItems = benutzerItems.slice(0, 19);
+    benutzerItems.push({
+      label: `Weitere (${rest.length})`,
+      werte: [rest.reduce((s, r) => s + r.werte[0], 0), rest.reduce((s, r) => s + r.werte[1], 0)],
+    });
+  }
+  balkenChart($("chart-benutzer"), benutzerItems, alarmSerien, 1040);
+
+  $("auswertung-inhalt").classList.remove("hidden", "laedt");
+}
+
+// ---------------------------------------------------------------- Fernsteuerung
+
+// Statusanzeige und Quittung im Editor bei jedem Live-Update auffrischen.
+function aktualisiereFernsteuerung() {
+  if (!ausgewaehlt || !benutzer[ausgewaehlt]) return;
+  const u = benutzer[ausgewaehlt];
+  $("fs-status").textContent = statusText(u);
+  const ack = u.state?.commandAck;
+  if (ack?.result) {
+    const wann = ack.at?.toDate ? " — " + ack.at.toDate().toLocaleString("de-CH") : "";
+    $("fs-quittung").textContent = "Letzte Quittung vom Gerät: " + ack.result + wann;
+  } else {
+    $("fs-quittung").textContent = "";
+  }
+}
+
+async function sendeBefehl(action, bestaetigung) {
+  const u = benutzer[ausgewaehlt];
+  if (!u) return;
+  if (!confirm(bestaetigung)) return;
+  $("editor-fehler").textContent = "";
+  try {
+    await setDoc(doc(db, "users", ausgewaehlt), {
+      command: { id: crypto.randomUUID(), action, issuedAt: serverTimestamp() },
+    }, { merge: true });
+    meldung("Befehl gesendet — Quittung des Geräts erscheint unten.");
+  } catch (e) {
+    $("editor-fehler").textContent = "Befehl fehlgeschlagen: " + (e.code || e.message);
+  }
+}
+
+$("fs-start-btn").onclick = () => sendeBefehl("start",
+  "Überwachung auf diesem Gerät starten?");
+$("fs-stop-btn").onclick = () => sendeBefehl("stop",
+  "Überwachung auf diesem Gerät wirklich beenden?\n" +
+  "Der Benutzer ist danach NICHT mehr geschützt.");
+
+// ---------------------------------------------------------------- Konto verwalten
+
+$("reset-btn").onclick = async () => {
+  const u = benutzer[ausgewaehlt];
+  if (!u?.email) return;
+  try {
+    await sendPasswordResetEmail(auth, u.email);
+    meldung(`Passwort-Reset-E-Mail an ${u.email} gesendet.`);
+  } catch (e) {
+    $("editor-fehler").textContent = "Senden fehlgeschlagen: " + (e.code || e.message);
+  }
+};
+
+$("mailwechsel-btn").onclick = () =>
+  $("mailwechsel-bereich").classList.toggle("hidden");
+
+$("mailwechsel-ok-btn").onclick = async () => {
+  const alt = benutzer[ausgewaehlt];
+  const neueMail = $("w-email").value.trim();
+  const pass = $("w-pass").value;
+  $("editor-fehler").textContent = "";
+  if (!alt || !neueMail || pass.length < 6) {
+    $("editor-fehler").textContent = "Bitte neue E-Mail und ein Passwort mit mind. 6 Zeichen angeben.";
+    return;
+  }
+  if (!confirm(`Konto von ${alt.email} auf ${neueMail} umziehen?\nDas alte Login wird gesperrt.`)) return;
+  try {
+    const zweitApp = initializeApp(firebaseConfig, "konto-umzug-" + neueMail);
+    const zweitAuth = getAuth(zweitApp);
+    const cred = await createUserWithEmailAndPassword(zweitAuth, neueMail, pass);
+    await signOut(zweitAuth);
+    await setDoc(doc(db, "users", cred.user.uid), {
+      name: alt.name || "",
+      email: neueMail,
+      active: alt.active !== false,
+      policy: { ...STANDARD_POLICY, ...(alt.policy || {}) },
+    });
+    await deleteDoc(doc(db, "users", ausgewaehlt));
+    $("w-email").value = $("w-pass").value = "";
+    oeffneEditor(cred.user.uid);
+    meldung(`Konto umgezogen — neues Login: ${neueMail}. Das alte Login ist gesperrt.`);
+  } catch (e) {
+    $("editor-fehler").textContent = "Umzug fehlgeschlagen: " + (e.code || e.message);
+  }
+};
+
+$("loeschen-btn").onclick = async () => {
+  const u = benutzer[ausgewaehlt];
+  if (!u) return;
+  if (!confirm(`Benutzer "${u.name || u.email}" wirklich löschen?\nDie App dieses Benutzers wird sofort gesperrt.`)) return;
+  try {
+    await deleteDoc(doc(db, "users", ausgewaehlt));
+    schliesseEditor();
+  } catch (e) {
+    $("editor-fehler").textContent = "Löschen fehlgeschlagen: " + (e.code || e.message);
+  }
+};
+
+// ---------------------------------------------------------------- Neuer Benutzer
+
+$("anlegen-btn").onclick = async () => {
+  const name = $("n-name").value.trim();
+  const email = $("n-email").value.trim();
+  const pass = $("n-pass").value;
+  $("neu-fehler").textContent = "";
+  if (!name || !email || pass.length < 6) {
+    $("neu-fehler").textContent = "Bitte Name, E-Mail und ein Passwort mit mind. 6 Zeichen angeben.";
+    return;
+  }
+  $("anlegen-btn").disabled = true;
+  try {
+    // Zweite App-Instanz, damit die Admin-Sitzung erhalten bleibt.
+    const zweitApp = initializeApp(firebaseConfig, "benutzer-anlegen-" + email);
+    const zweitAuth = getAuth(zweitApp);
+    const cred = await createUserWithEmailAndPassword(zweitAuth, email, pass);
+    await signOut(zweitAuth);
+    await setDoc(doc(db, "users", cred.user.uid), {
+      name, email, active: true, policy: { ...STANDARD_POLICY },
+    });
+    $("n-name").value = $("n-email").value = $("n-pass").value = "";
+    oeffneEditor(cred.user.uid);
+  } catch (e) {
+    $("neu-fehler").textContent = "Anlegen fehlgeschlagen: " + (e.code || e.message);
+  } finally {
+    $("anlegen-btn").disabled = false;
+  }
+};
+</script>
+</body>
+</html>
